@@ -1,0 +1,94 @@
+<pre>
+Quick start
+-----------
+Download VeriMAP from http://saks.iasi.cnr.it/emanuele/software/VeriMAP/
+
+and run the following commands:
+
+  tar -zxvf VeriMAP-linux_x86_64.tar.gz
+  cd VeriMAP-linux_x86_64
+
+
+Usage
+-----
+
+Getting help
+
+./VeriMAP -h
+
+
+Verification Conditions (VCs) generation
+
+./VeriMAP program.c -v smallstep
+
+where 'smallstep' denote the interpeter for the smallstep semantics (use 'multistep' to get the VCs from the multistep semantics).
+
+The VCs can be found in the file named 'program.c.map.transform.pl' located in the same folder as the 'program.c' file.
+
+
+Constraint propagation
+
+./VeriMAP program.pl -c mdg
+
+where 'mdg' denotes monovariant generalization with widening and convex-hull
+(try 'VeriMAP -h' to get the complete arguments list for the -c option).
+
+The transformed CHCs can be found in the file named 'program.transform.pl' located in the same folder as the 'program.pl' file.
+
+Clause reversal and constraint propagation
+
+./VeriMAP program.pl -c mdg -r
+
+
+Predicate pairing
+
+./VeriMAP program.pl -p
+
+The transformed CHCs can be found in the file named 'program.transform.pl' located in the same folder as the 'program.pl' file.
+
+
+Convert CHCs from Prolog syntax to muZ SMT-LIB2 extension (*)
+
+./VeriMAP program.pl -o muZ
+
+(*) http://rise4fun.com/z3/tutorialcontent/fixedpoints
+The translated CHCs can be found in the file named 'program.z3' located in the same folder as the 'program.pl' file.
+
+Convert CHCs from Prolog syntax to pure SMT-LIB2
+
+./VeriMAP program.pl -o smt
+
+
+Check the satisfiability of the CHCs using z3 with Duality
+
+./VeriMAP -s z3 program.pl
+
+
+Check the satisfiability of the CHCs using Eldarica
+
+./VeriMAP -s eldarica program.pl
+
+
+Note: CHCs solvers are not included in the .tar.gz archive. The CHCs solvers are available at the following links:
+- the Z3 theorem prover: https://github.com/Z3Prover/z3
+- the Eldarica model checker: https://github.com/uuverifiers/eldarica
+
+To get model/unsat core:
+- add '(get-model)'/'(get-unsat-core)' to the .smt file,
+- replace '(query incorrect)' by '(query incorrect :print_certificate true)' in the .z3 file,
+- run z3 with the muZ format by using 'z3 -smt2 program.z3 fixedpoint.engine=duality fixedpoint.print_certificate=true'
+
+
+Benchmarks of hundreds of examples of verification problems (mostly taken from the SV-COMP and the benchmark sets of
+various software model checkers such as DAGGER, TRACER, InvGen, and WHALE) can be found in 'benchmarks/cp/' (benchmark
+set for VCs generation and constraint propagation, divided into 'integers' and 'arrays', for integers and integer arrays
+programs, respectively), and 'benchmarks/pp/' (benckmark set for predicate pairing).
+</pre>
+
+
+<h4>Useful links:</h4>
+
+<ul class="list-group">
+<li class="list-group-item">The <a href="https://github.com/Z3Prover/z3">Z3</a> Theorem Prover</li>
+<li class="list-group-item">The <a href="https://github.com/uuverifiers/eldarica">Eldarica</a> model checker</li>
+</ul>

@@ -1,0 +1,417 @@
+#!/bin/bash
+
+# ------------------------------------------------------------------------------
+# set up   
+# ------------------------------------------------------------------------------
+set -o nounset
+
+# determine the working directory
+DIR="$(dirname $(realpath -s $0))"
+if [[ -d "${DIR}/scripts" ]]; then
+  BASEDIR="${DIR%/*}/bin"
+  SCRIPTDIR="$DIR/scripts"
+  C2MAPDIR="$DIR/scripts"
+else
+  BASEDIR="."
+  SCRIPTDIR=$BASEDIR
+  C2MAPDIR="$BASEDIR/c2map"
+fi
+
+ARGS=$(getopt -o t:h -a \
+     --long "enc,pp,cp,analyze:,help" -n "$0"  -- "$@");
+
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
+
+eval set -- "$ARGS";
+
+source $SCRIPTDIR/mapsystem_utils 
+
+function relprop_epilogue()
+{
+  rm -f $antimename $answername $trtimename verimap_out.txt *_stats.csv
+  exit 1
+}
+
+function clean_up()
+{
+  printf "\n%s: Script terminated by SIGINT (Control-C)\n" "$(basename $0)" >&2
+  rm -f $antimename $answername $trtimename ${source}/*.spec ${source}/*.log ${source}/*.pl
+  relprop_epilogue 130
+}
+
+trap "clean_up" SIGINT
+
+trap "relprop_epilogue" SIGTERM
+
+function check_config()
+{  
+   if [[ ! -e $source ]]; then
+     exit_status=$exit_status_config_error
+     print_error_and_exit "$(basename $0)" "'$source' does not exist"
+   elif [[ $(find -L $source -maxdepth 1 -type f -name '*.c' | wc -l) == 0 ]]; then
+     exit_status=$exit_status_config_error
+     print_error_and_exit "$(basename $0)" "C source(s) not found in '$source'"
+   elif [[ $(find -L $source -maxdepth 1 -type f -name 'relprop' | wc -l) != 1 ]]; then
+     exit_status=$exit_status_config_error
+     print_error_and_exit "$(basename $0)" "'$source' must contain one relprop file"   
+   fi
+
+   case ${atype:-unset} in
+     eldarica|z3|unset)
+     ;;
+     *)
+       exit_status=$exit_status_config_error
+       print_error_and_exit "$(basename $0)" "'${atype}' is not a valid option for --analyzer"
+     ;;
+   esac  
+}
+
+bold=`tput bold`
+normal=`tput sgr0`
+
+function print_help()
+{
+  printf "\nUsage: ${bold}VeriMAPRel${normal} SOURCE [OPTION]\n\n"
+
+  printf "Transform SOURCE to check whether or not the relational property holds.\n"
+
+  printf "Mandatory ([=Optional]) arguments to long options are\n"
+  printf "mandatory ([=optional]) for short options too.\n\n"
+  printf "For mandatory arguments \`=' symbol can be omitted.  \n\n"
+
+  printf " ${bold}--enc${normal}                                            \n"
+  printf "       generate a set of CHCs encoding the relational property  \n\n"
+
+  printf " ${bold}--pp${normal}                                             \n"
+  printf "       apply the predicate pairing strategy                     \n\n"
+
+  printf " ${bold}--cp${normal}                                             \n"
+  printf "       propagate the constraints occurring in the clauses       \n\n"
+
+  printf " ${bold}--analyze${normal}=ATYPE                                  \n"
+  printf "       select a CHC analyzer                                      \n"
+  printf "       ATYPE can be z3 or eldarica                              \n\n"
+
+  printf " ${bold}-t${normal}=TIME                                          \n"
+  printf "       specify a timeout for the analysis                       \n\n"
+
+  printf " ${bold}-h${normal}, ${bold}--help${normal}                       \n"
+  printf "       display this help and exit                               \n\n"
+
+  printf " ------------------------------\n"
+  printf " For ${bold}questions${normal} and ${bold}bug reports${normal}:\n\n"
+  printf "   http://map.uniroma2.it/developers/\n"
+}
+
+enc=false
+pp=false
+cp=false
+timeout=300
+
+while true; do
+  case $1 in
+
+    --enc)
+      enc=true
+      shift
+    ;;
+
+    --pp)
+      enc=true
+      pp=true
+      shift
+    ;;
+
+    --cp)
+      enc=true
+      pp=true      
+      cp=true
+      shift
+    ;;
+
+    --analyze)
+      atype=$2
+      shift 2
+    ;;
+
+    -t)
+      timeout=$2
+      shift 2
+    ;;
+
+    -h|--help)
+      print_help
+      shift
+      exit 0
+    ;;
+    
+    --)
+      shift
+      if [[ -z "${1:-}" ]]; then
+         exit_status=$exit_status_config_error
+         print_error_and_exit "$(basename $0)" "no input"
+      fi
+      source="${1%/}"
+      check_config
+      break
+    ;;
+
+  esac
+done
+
+
+rm -f ${source}/*.spec ${source}/*.log ${source}/*.pl *.SAV *.csv
+
+declare -x trtimename=$(mktemp)
+declare -x antimename=$(mktemp)
+declare -x answername=$(mktemp)
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+function c2map_listener() {
+
+  while read -r data; do
+
+    case $data in
+      *ERROR:*)
+        errmsg="$(echo $data | cut -d':' -f3)"
+        printf "\n${bold}ERROR:${normal}%s\n" "$errmsg" >&2
+        kill -SIGTERM $$
+        exit
+        ;;
+      *)
+        ;;
+    esac 
+  done
+
+  rm -f $1/*.stderr
+  
+}
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+function transform_listener() {
+
+  while read -r data; do
+
+    case $data in
+      *ERROR:*)
+        errmsg="$(echo $data | cut -d':' -f3)"
+        printf "\n${bold}ERROR:${normal}%s\n" "$errmsg" >&2
+        kill -SIGTERM $$
+        exit
+        ;;
+      checking*|Loading*|Adding*|using*|found*)
+        ;;
+      "WARNING - command was terminated - timeout"*)
+        echo "transformer_timeout" > $answername 
+        echo "300000" >> $trtimename
+        ;;
+      "Answer"*)    
+        echo $data | cut -d':' -f2 >  $answername 
+        ;;
+      "Elapsed time (ms)"*)
+        echo $data | cut -d':' -f2 >> $trtimename
+        ;;
+      *)
+        ;;
+    esac 
+  done
+
+  echo "done"
+  
+}
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+function map2mapts_listener() {
+ 
+  local time=0
+
+  while read -r data; do
+
+    case $data in
+      *ERROR:*)
+        if grep -q 'map2mats: a nonlinear clause was found' $1; then
+          :
+        else
+          errmsg="$(echo $data | cut -d':' -f3)"
+          printf "\n${bold}ERROR:${normal}%s\n" "$errmsg" >&2
+          kill -SIGTERM $$ 
+          exit
+        fi
+        ;;
+      "Elapsed time (ms)"*)
+        echo $data | cut -d':' -f2 >> $trtimename
+        ;;
+      *)
+        ;;
+    esac 
+  done
+  
+}
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+function analyzer_listener() {
+
+  while read -r data; do
+
+    case $data in          
+      "Answer"*)    
+        echo "${data/Answer: /}" > $answername
+        ;;
+      "Elapsed time (ms)"*)
+        echo $data | cut -d':' -f2 > $antimename
+        ;;
+      *)
+        if [[ "$data" =~ "ERROR:" ]]; then
+          errmsg="$(echo $data | cut -d':' -f3)"
+          printf "\n${bold}ERROR:${normal}%s\n" "$errmsg" >&2
+          kill -SIGTERM $$
+          exit
+        fi
+       ;;
+    esac
+  done
+}
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+if $enc; then
+  printf "%-42s" "1. CHC Encoding in progress ... "
+  
+  find -L $source -maxdepth 1 -type f -name '*.c' | {
+    while read -d $'\n' file; do
+      if grep -q '\];' ${file}; then
+        config='configs/enc_array.iteration'
+      fi
+    done
+    if [[ -z ${config:-}  ]]; then
+      config='configs/enc.iteration'
+    fi   
+    $C2MAPDIR/c2map $source 2>&1 | c2map_listener $source
+    find -L $source -maxdepth 1 -type f -name '*.c' | {
+    while read -d $'\n' cfile; do
+      if [[ ! -f ${cfile}.map.pl ]]; then 
+        relprop_epilogue 1
+      fi
+    done
+    $SCRIPTDIR/transform $source specint $config --relprop $source/relprop --find-name='*.pl' -t 300 2>&1 | transform_listener
+    rm ${source}/*.spec ${source}/*.log ${source}/*.pl 1>/dev/null 2>&1
+    find -L ${source}.transformed -maxdepth 1 -type f -name '*.relprop.pl' -exec mv -t ${source} {} +
+    rename 's/\.relprop\.pl/\.enc\.pl/' ${source}/*.relprop.pl 1>/dev/null 2>&1
+    rm -R ${source}.transformed 1>/dev/null 2>&1
+    }
+  }
+  to_be_analyzed='*.enc.pl'
+fi
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+function is_linear() {
+  cat "$1" | grep -v '^%' | tr -d '\n' | tr '.' '\n' | awk '
+    BEGIN { res="true" }
+    {
+      line = $0;
+      elem = split(line,clause,":-");
+      if ( elem == 2 && index(clause[1],"incorrect") == 0) {
+        numnew = gsub(/new[1-9]*/,"",clause[2]);
+        if ( numnew >= 2 ) {
+          exit numnew;
+        }
+      }
+    }'
+}
+#-------------------------------------------------------------------------------
+if $pp; then
+  printf "%-42s" "2. Predicate Pairing in progress ... "
+
+  find -L $source -maxdepth 1 -type f -name '*.enc.pl' | while read -d $'\n' file; do
+    if grep -q 'read\|write' ${file}; then
+      config=configs/pp_array.iteration
+    elif is_linear $file; then
+      config=configs/pp1.iteration
+    else 
+      config=configs/pp2.iteration
+    fi
+
+    $SCRIPTDIR/transform ${file} incorrect $config -t 300 2>&1 | transform_listener
+    rename 's/\.enc\.transform\.pl/\.pp\.pl/' ${source}/*.enc.transform.pl 1>/dev/null 2>&1
+  done
+  to_be_analyzed='*.pp.pl'
+fi
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+if $cp; then
+  printf "%-42s" "3. Constraint Propagation in progress ... "
+
+  find -L $source -maxdepth 1 -type f -name '*.pp.pl' | while read -d $'\n' file; do
+    echo 'inv1 :- \+incorrect.' >> $file
+    if grep -q 'read\|write' ${file}; then
+      config='configs/cp_array.iteration'
+    else
+      config='configs/cp.iteration'
+    fi
+    map2mapts_errfile=${file%.pl}.stderr
+    $SCRIPTDIR/transform --map2mapts $file 2>&1 | map2mapts_listener $map2mapts_errfile
+    if [[ -e $map2mapts_errfile ]]; then
+      if grep -q 'map2mats: a nonlinear clause was found' ${file%.pl}.stderr; then
+        echo "0" > $antimename
+        echo "unknown" > $answername
+        rm -f ${file%.pl}.stderr ${file%.pl}.mapts
+      fi
+      echo "done"
+    else
+      $SCRIPTDIR/transform ${file%.pl}.mapts inv1 $config -t 300 2>&1 | transform_listener
+      rm ${file%.pl}.mapts
+      rename 's/\.pp\.mapts\.transform\.pl/\.cp\.pl/' ${source}/*.pp.mapts.transform.pl 1>/dev/null 2>&1
+    fi
+  done
+  to_be_analyzed='*.cp.pl'
+fi
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+if [[ -n ${atype:-} ]]; then
+  if [[ -e $answername ]] && grep -q 'transformer_timeout' $answername; then
+    :
+  else
+    echo "Analyzing the CHCs"
+  fi
+  find -L $source -type f -name $to_be_analyzed | while read -d $'\n' file; do
+    if [[ ${atype} == eldarica ]]; then
+      $SCRIPTDIR/analyze -a eldarica $file -t $timeout --solver-format smt --solver-options '-abstract:oct -i' 2>&1 | analyzer_listener
+    elif [[ ${atype} == z3 ]]; then 
+      $SCRIPTDIR/analyze -a z3 $file -t $timeout --z3-engine duality 2>&1 | analyzer_listener
+    fi     
+  done
+  rm -f $source/*.out.*
+  antime=$(cat $antimename)
+fi
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+trtime=0
+OLDIFS=$IFS
+IFS=$'\n'
+while read line || [[ -n "$line" ]]; do
+  let "trtime = $trtime + $line"
+done < "$trtimename"
+IFS=$OLDIFS
+if [[ -e $answername ]] && grep -q 'transformer_timeout' $answername; then
+  echo "Transformation timeout"
+else
+  printf "${bold}Transformation time${normal}: %s ms\n" $trtime
+  if [[ -n ${atype:-} ]]; then
+    printf "${bold}Analysis time${normal}: %s ms\n" $antime
+  fi
+  if [[ -n ${atype:-} ]]; then
+    if grep -q 'solver_timeout' $answername; then
+      printf "${bold}Answer${normal}: unknown (solver_timeout)\n"
+    elif grep -q 'gremlins' $answername; then
+      printf "${bold}Answer${normal}: unknown (solver error)\n"
+    else
+      answer="$(cat $answername)"
+      printf "${bold}Answer${normal}: %s\n" "$answer"
+    fi
+  fi
+fi
+
+relprop_epilogue 0

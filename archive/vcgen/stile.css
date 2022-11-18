@@ -1,0 +1,45 @@
+ html, body
+  {
+		height: 100%;
+  }
+	
+  body
+  {
+		background: #FFC;
+		font-family: 'Source Sans Pro', sans-serif;
+		font-size: 12pt;
+		font-weight: 350;
+  }
+
+
+    ol li
+    { 
+        vertical-align:top
+    }
+
+	p
+	{
+		line-height: 110%;
+	}
+
+	
+
+	
+	h3 a, h4 a, a
+	{
+		color: #33C;
+        text-decoration: none;
+	}
+	
+	h3 a:hover, 
+	{
+	    color: red;
+		text-decoration: none;
+	}
+	
+
+  a:link, a:visited {
+    color: #C33;
+  }
+
+  

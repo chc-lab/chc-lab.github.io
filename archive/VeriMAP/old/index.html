@@ -1,0 +1,116 @@
+<html>
+ <head>
+  <link href="stile.css" rel="stylesheet" type="text/css">
+ </head>
+
+  <body>
+
+  <h1>VeriMAP</h1>
+
+<h4> Download </h4>
+  <ul>
+    <li> <a href="VeriMAP-linux_x86_64.tar.gz"> VeriMAP-linux_x86_64.tar.gz </a> </li>
+    <li> <a href="http://map.uniroma2.it/smc"> Benchmark sets for VeriMAP </a> </li>
+    <li> <a href="VeriMAP-poster.pdf">TACAS Poster</a> </li>
+  </ul>
+
+<h4> Web interface for remote use of VeriMAP (<a href="http://map.uniroma2.it/verimapweb">click here</a>)</h4>
+
+<h4> Developers </h4>
+  <a href="http://www.sci.unich.it/~deangelis">Emanuele De Angelis</a>,
+  <a href="http://www.sci.unich.it/~fioravan">Fabio Fioravanti</a>, and
+  <a href="http://www.iasi.cnr.it/~proietti">Maurizio Proietti</a>
+
+<h4> Paper </h4>
+<p>
+De Angelis, E., Fioravanti, F., Pettorossi, A., Proietti, M.:
+<a href="/papers/2014-DFPP-TACAS14.pdf">VeriMAP: A Tool for Verifying Programs through Transformations</a>.
+Tool demonstration paper.
+20th International Conference on Tools and Algorithms for the Construction and Analysis of Systems (TACAS).
+ETAPS '14, Grenoble, France, 2014.
+</a>
+</p>
+
+<pre>
+README for VeriMAP
+------------------
+October 12, 2013
+
+VeriMAP is a tool for the verification of C programs based
+on the transformation of constraint logic programs.
+
+
+Quick start
+-----------
+Download VeriMAP from http://map.uniroma2.it/VeriMAP/
+and run the following commands:
+
+  tar -zxvf VeriMAP-linux_x86_64.tar.gz
+  cd VeriMAP-linux_x86_64
+
+
+Usage
+-----
+
+Getting basic help
+
+./VeriMAP
+
+
+Getting advanced help
+
+./VeriMAP --help
+
+
+Verifying a program (for instance, example1.c) with basic options
+
+./VeriMAP examples/example1.c
+
+
+Generating the CLP program from the C program
+
+./VeriMAP examples/example1.c --c2clp
+
+
+Generating the Verification Conditions (VC's)
+
+./VeriMAP examples/example1.c --vcg
+
+
+Setting a number of iterations for the Iterated Verifier
+
+./VeriMAP examples/example1.c --iterations N
+
+
+Changing strategy: to choose a strategy to deal with programs that manipulate
+(i) integers ('w' or 'ch-w'), and (ii) integers and arrays ('array').
+
+./VeriMAP examples/example1.c --strategy {w,ch-w,array}
+
+('w' stands for 'widening', 'ch-w' stands for 'convex hull and widening')
+
+
+Examples
+--------
+
+To run the paper examples:
+
+./VeriMAP examples/example1.c
+./VeriMAP examples/example2.c --iterations 2
+
+
+To run an example (for instance, integer.c) in the 'integers' folder
+by executing at most N iterations(*):
+
+./VeriMAP examples/integers/integer.c --strategy ch-w --iterations N
+
+(*) we recommend you to use 8 as a value for N.
+
+
+To run an example (for instance, array.c) in the 'arrays' folder:
+
+./VeriMAP examples/arrays/array.c --strategy array
+</pre>
+
+</body>
+</html>

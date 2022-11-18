@@ -1,0 +1,91 @@
+<html>
+ <head>
+  <link href="stile.css" rel="stylesheet" type="text/css">
+  <title>VeriMAP - VCs Generator</title>
+ </head>
+ 
+ 
+  <body>
+
+  <h2>Semantics-based generation of verification conditions via program specialization</h2>
+
+  <ul>
+     <li>Benchmark set (<a href="benchmark320.tar.gz">C programs</a>)</li>
+     <li>VCs <a href="vcg_SSsf.tar.gz">SS<sup style='position: relative; bottom: 2pt'>s</sup><sub style='position: relative; left: -.5em; top: 2pt'>f</sub></a>
+        (<a href="vcg_SSsf.horn.tar.gz">eldarica</a>,
+         <a href="vcg_SSsf.smt.tar.gz">msatic3</a>,
+         <a href="vcg_SSsf.horn.tar.gz">qarmc</a>,
+         <a href="vcg_SSsf.z3-fixedpoints.tar.gz">z3</a>)
+     </li>
+     <li>VCs <a href="vcg_MS.tar.gz">MS</a>
+        (<a href="vcg_MS.horn.tar.gz">eldarica</a>,
+         <a href="vcg_MS.smt.tar.gz">msatic3</a>,
+         <a href="vcg_MS.horn.tar.gz">qarmc</a>, 
+         <a href="vcg_MS.z3-fixedpoints.tar.gz">z3</a>)
+     </li>
+     </li>
+  </ul>
+
+
+  <h4> Tool </h4>
+  <ul>
+      <li> <a href="VeriMAP-linux_x86_64.tar.gz">VeriMAP-linux_x86_64.tar.gz</a> </li>
+  </ul>    
+
+
+<pre> 
+HOWTO generate the VCs with VeriMAP
+-----------------------------------
+
+Quick start
+-----------
+
+Download VeriMAP from http://map.uniroma2.it/vcgen/ 
+and run the following commands: 
+
+  tar -zxvf VeriMAP-linux_x86_64.tar.gz
+  cd VeriMAP-linux_x86_64
+
+Usage
+-----
+
+Getting help:
+
+  ./VeriMAP --help 
+
+Generating the VCs by using the interpreter for the small-step semantics (SSsf):
+
+  ./VeriMAP example.c --vcg=vcg_SSsf.iteration --source-format C
+
+Generating the VCs by using the interpreter for the multi-step semantics (MS):
+
+  ./VeriMAP example.c --vcg=vcg_MS.iteration --source-format C
+
+The generated VCs can be found in OutProgs-vcg.
+
+Generating the VCs and converting them to the specified format: 
+
+  ./VeriMAP example.c --vcg=vcg_SSsf.iteration --source-format C --convert-to $FORMAT
+
+where $FORMAT is either 
+'horn' (e.g., for the eldarica and qarmc solvers), or
+'smt' (e.g., for the msatic3 solver), or
+'z3-fixedpoints' (for the muZ with fixed-point constraints extension of the z3 solver).
+
+The result of the translation process can be found in OutProgs-map2{horn,smt,z3}.
+
+Removing non-linking variables:
+  
+  ./VeriMAP example.pl --transform=nlr.iteration
+
+Constrained FAR (to be applied on the output obtained by using '--transform=nlv.iteration'):
+  
+  ./VeriMAP example.pl --transform=constrained-far.iteration
+
+The result of the transformation process can be found in OutProgs-uft.
+
+</pre>
+
+</body>
+
+</html>

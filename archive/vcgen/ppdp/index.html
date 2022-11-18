@@ -1,0 +1,78 @@
+<html>
+ <head>
+  <link href="/smc/stile.css" rel="stylesheet" type="text/css">
+ </head>
+ 
+ 
+  <body>
+
+  <h2>Semantics-based generation of verification conditions by program specialization</h2>
+
+  <ul>
+     <li>Benchmark set (<a href="benchmark320.tar.gz">C programs</a>)</li>
+     <li>VCs <a href="vcg_SS1.tar.gz">SS1</a>
+        (<a href="vcg_SS1.qarmc.tar.gz">qarmc</a>,
+         <a href="vcg_SS1.msatic3.tar.gz">msatic3</a>,
+         <a href="vcg_SS1.z3.tar.gz">z3</a>)
+     </li>
+     <li>VCs <a href="vcg_MS1.tar.gz">MS1</a>
+        (<a href="vcg_MS1.qarmc.tar.gz">qarmc</a>,
+         <a href="vcg_MS1.msatic3.tar.gz">msatic3</a>,
+         <a href="vcg_MS1.z3.tar.gz">z3</a>)
+     </li>
+     </li>
+  </ul>
+
+  <h4> Tool </h4>
+  <ul>
+      <li> <a href="VeriMAP-linux_x86_64.tar.gz">VeriMAP-linux_x86_64.tar.gz</a> </li>
+  </ul>    
+
+  <pre> 
+README for VeriMAP-vcg
+----------------------
+July 06, 2015
+
+VeriMAP-vcg is a tool for generating the Verification Conditions (VCs) 
+of C programs based on the transformation of constraint logic programs.
+
+
+Quick start
+-----------
+Download VeriMAP from http://map.uniroma2.it/vcgen/ 
+and run the following commands: 
+
+  tar -zxvf VeriMAP-linux_x86_64.tar.gz
+  cd VeriMAP-linux_x86_64
+  
+
+Usage
+-----
+
+Getting help
+
+./VeriMAP --help 
+
+Generating the VCs by using the interpreter for the small-step semantics
+
+./VeriMAP-vcg example.c configs/vcg_SS1.iteration
+
+Generating the VCs by using the interpreter for the multi-step semantics
+
+./VeriMAP-vcg example.c configs/vcg_MS1.iteration
+
+Generating the VCs and converting them to the specified format 
+
+./VeriMAP-vcg example.c configs/vcg_SS1.iteration --convert-to $FORMAT
+
+where $FORMAT is either 'smt-msatic3' for the msatic3 solver, 
+or 'smt-z3' for the Z3 SMT solver, or 'horn-eldarica' for the eldarica solver.
+
+The generated VCs, and its translation (whenever the --convert-to option applies),
+can be found in OutProgs-vcg
+  </pre>
+
+  </body>
+
+
+</html>

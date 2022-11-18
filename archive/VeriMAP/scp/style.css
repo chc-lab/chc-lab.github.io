@@ -1,0 +1,82 @@
+	html, body
+	{
+		height: 100%;
+	}
+	
+	body
+	{
+		background: #FFF;
+		font-family: 'Source Sans Pro', sans-serif;
+		font-size: 12pt;
+		font-weight: 350;
+		color: #000000;
+	}
+	 
+	
+	h1, h2, h3
+	{
+		margin: 0;
+		padding: 0;
+	}
+	
+	p, ol, ul
+	{
+		margin-top: 0;
+	}
+	
+	ol
+	{
+		padding: 0;
+		list-style: none;
+	}
+
+/*
+	ul
+	{
+	    list-style-type:upper-roman;
+    }
+*/  
+
+    ol li
+    { 
+        margin:0 5px 5px 0; 
+        vertical-align:top
+    }
+
+	p
+	{
+		line-height: 110%;
+	}
+
+    h3
+    {
+		color: #CD5C5C;
+    }
+
+    h4
+    {
+		color: #007FFF;
+    }
+	
+	strong
+	{
+	}
+	
+	a
+	{
+		color: #177245;
+        text-decoration: none;
+	}
+	
+	a:hover
+	{
+	    color: #177245;
+		text-decoration: none;
+	}
+	
+	.container
+	{
+		overflow: hidden;
+		margin: 0em auto;
+		width: 1200px;
+	}
